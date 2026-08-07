@@ -19,6 +19,8 @@ if vim.g.vscode_clipboard then
 	vim.g.clipboard = vim.g.vscode_clipboard
 end
 
+vim.o.clipboard = "unnamedplus"
+
 map("n", "<Esc>", "<cmd>nohlsearch<CR>", {
 	desc = "Clear search highlight",
 })
