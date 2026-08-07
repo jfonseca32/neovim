@@ -187,9 +187,55 @@ do
 	--  See `:help hlsearch`
 	vim.keymap.set("n", "<Esc>", "<cmd>nohlsearch<CR>")
 	vim.keymap.set("n", "<TAB>", "$")
-	vim.keymap.set("i", "<TAB>", "$")
+	vim.keymap.set("v", "<TAB>", "$")
 	vim.keymap.set("n", "q", "0")
-	vim.keymap.set("i", "q", "0")
+	vim.keymap.set("v", "q", "0")
+	vim.api.nvim_create_user_command("DiffOrig", function()
+		local orig_win = vim.api.nvim_get_current_win()
+		local orig_buf = vim.api.nvim_get_current_buf()
+		local filename = vim.api.nvim_buf_get_name(orig_buf)
+
+		if filename == "" or not vim.uv.fs_stat(filename) then
+			vim.notify("Current buffer has no saved file to diff against", vim.log.levels.WARN)
+			return
+		end
+
+		local lines = vim.fn.readfile(filename)
+		local filetype = vim.bo[orig_buf].filetype
+
+		vim.cmd("vertical new")
+		local diff_win = vim.api.nvim_get_current_win()
+		local diff_buf = vim.api.nvim_get_current_buf()
+
+		vim.api.nvim_buf_set_lines(diff_buf, 0, -1, false, lines)
+		vim.bo[diff_buf].buftype = "nofile"
+		vim.bo[diff_buf].bufhidden = "wipe"
+		vim.bo[diff_buf].swapfile = false
+		vim.bo[diff_buf].filetype = filetype
+		vim.bo[diff_buf].modified = false
+		vim.bo[diff_buf].modifiable = false
+		vim.bo[diff_buf].readonly = true
+
+		vim.cmd("diffthis")
+		vim.api.nvim_set_current_win(orig_win)
+		vim.cmd("diffthis")
+
+		vim.api.nvim_create_autocmd("WinClosed", {
+			pattern = tostring(diff_win),
+			once = true,
+			callback = function()
+				vim.schedule(function()
+					if vim.api.nvim_win_is_valid(orig_win) then
+						vim.api.nvim_win_call(orig_win, function()
+							vim.cmd("diffoff")
+							vim.cmd("redraw!")
+						end)
+					end
+				end)
+			end,
+		})
+	end, { force = true, desc = "Compare current buffer with saved file" })
+
 	vim.keymap.set("n", "<leader>do", "<cmd>DiffOrig<CR>")
 
 	-- Diagnostic Config & Keymaps
@@ -554,6 +600,20 @@ do
 
 	-- See `:help telescope.builtin`
 	local builtin = require("telescope.builtin")
+	local actions = require("telescope.actions")
+
+	local function lsp_vsplit(picker)
+		return function()
+			picker({
+				jump_type = "vsplit",
+				attach_mappings = function(_, map)
+					map("i", "<CR>", actions.select_vertical)
+					map("n", "<CR>", actions.select_vertical)
+					return true
+				end,
+			})
+		end
+	end
 	vim.keymap.set("n", "<leader>sh", builtin.help_tags, { desc = "[S]earch [H]elp" })
 	vim.keymap.set("n", "<leader>sk", builtin.keymaps, { desc = "[S]earch [K]eymaps" })
 	vim.keymap.set("n", "<leader>sf", builtin.find_files, { desc = "[S]earch [F]iles" })
@@ -574,28 +634,32 @@ do
 			local buf = event.buf
 
 			-- Find references for the word under your cursor.
-			vim.keymap.set("n", "grr", function()
-				builtin.lsp_definitions({ jump_type = "vsplit" })
-			end, { buffer = buf, desc = "[G]oto [R]eferences" })
+			vim.keymap.set("n", "grr", lsp_vsplit(builtin.lsp_references), {
+				buffer = buf,
+				desc = "[G]oto [R]eferences",
+			})
 
 			-- Jump to the implementation of the word under your cursor.
 			-- Useful when your language has ways of declaring types without an actual implementation.
-			vim.keymap.set("n", "gri", function()
-				builtin.lsp_definitions({ jump_type = "vsplit" })
-			end, { buffer = buf, desc = "[G]oto [I]mplementation" })
+			vim.keymap.set("n", "gri", lsp_vsplit(builtin.lsp_implementations), {
+				buffer = buf,
+				desc = "[G]oto [I]mplementation",
+			})
 
 			-- Jump to the definition of the word under your cursor.
 			-- This is where a variable was first declared, or where a function is defined, etc.
 			-- To jump back, press <C-t>.
-			vim.keymap.set("n", "grd", function()
-				builtin.lsp_definitions({ jump_type = "vsplit" })
-			end, { buffer = buf, desc = "[G]oto [D]efinition" })
+			vim.keymap.set("n", "grd", lsp_vsplit(builtin.lsp_definitions), {
+				buffer = buf,
+				desc = "[G]oto [D]efinition",
+			})
 
 			-- Fuzzy find all the symbols in your current document.
 			-- Symbols are things like variables, functions, types, etc.
-			vim.keymap.set("n", "gO", function()
-				builtin.lsp_definitions({ jump_type = "vsplit" })
-			end, { buffer = buf, desc = "Open Document Symbols" })
+			vim.keymap.set("n", "gO", lsp_vsplit(builtin.lsp_document_symbols), {
+				buffer = buf,
+				desc = "Open Document Symbols",
+			})
 
 			-- Fuzzy find all the symbols in your current workspace.
 			-- Similar to document symbols, except searches over your entire project.
@@ -609,9 +673,10 @@ do
 			-- Jump to the type of the word under your cursor.
 			-- Useful when you're not sure what type a variable is and you want to see
 			-- the definition of its *type*, not where it was *defined*.
-			vim.keymap.set("n", "grt", function()
-				builtin.lsp_definitions({ jump_type = "vsplit" })
-			end, { buffer = buf, desc = "[G]oto [T]ype Definition" })
+			vim.keymap.set("n", "grt", lsp_vsplit(builtin.lsp_type_definitions), {
+				buffer = buf,
+				desc = "[G]oto [T]ype Definition",
+			})
 		end,
 	})
 
@@ -825,7 +890,7 @@ do
 		},
 	}
 
-	-- Let Pyright provide Python hover documentation.
+	-- Let BasedPyright provide Python hover documentation.
 	-- Ruff remains active for linting and code actions.
 	vim.api.nvim_create_autocmd("LspAttach", {
 		group = vim.api.nvim_create_augroup("disable-ruff-hover", { clear = true }),
