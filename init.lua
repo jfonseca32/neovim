@@ -190,6 +190,9 @@ do
 	vim.keymap.set("v", "<TAB>", "$")
 	vim.keymap.set("n", "q", "0")
 	vim.keymap.set("v", "q", "0")
+	vim.keymap.set("n", "yaa", "<cmd>%y<CR>")
+	vim.keymap.set("n", "daa", "<cmd>%d<CR>")
+
 	vim.api.nvim_create_user_command("DiffOrig", function()
 		local orig_win = vim.api.nvim_get_current_win()
 		local orig_buf = vim.api.nvim_get_current_buf()
