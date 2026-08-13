@@ -29,6 +29,14 @@ map({ "n", "x" }, "<Tab>", "$", {
 	desc = "Move to end of line",
 })
 
+map({ "n", "x" }, "yaa", "<cmd>%y<CR>", {
+	desc = "yank whole file",
+})
+
+map({ "n", "x" }, "daa", "<cmd>%d<CR>", {
+	desc = "delete whole file",
+})
+
 map({ "n", "x" }, "q", "0", {
 	desc = "Move to beginning of line",
 })
