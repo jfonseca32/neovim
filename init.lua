@@ -129,6 +129,16 @@ do
 	-- Enable break indent
 	vim.o.breakindent = true
 
+	vim.api.nvim_create_autocmd("FileType", {
+		pattern = { "javascript", "javascriptreact", "typescript", "typescriptreact" },
+		callback = function()
+			vim.opt_local.tabstop = 2
+			vim.opt_local.softtabstop = 2
+			vim.opt_local.shiftwidth = 2
+			vim.opt_local.expandtab = true
+		end,
+	})
+
 	-- Enable undo/redo changes even after closing and reopening a file
 	vim.o.undofile = true
 
@@ -412,7 +422,16 @@ do
 	-- We first install it from https://github.com/NMAC427/guess-indent.nvim
 	-- and then call its `setup()` function to start it with default settings.
 	vim.pack.add({ gh("NMAC427/guess-indent.nvim") })
-	require("guess-indent").setup({})
+	require("guess-indent").setup({
+		filetype_exclude = {
+			"javascript",
+			"javascriptreact",
+			"netrw",
+			"tutor",
+			"typescript",
+			"typescriptreact",
+		},
+	})
 
 	-- Here is a more advanced configuration example that passes options to `gitsigns.nvim`
 	--
@@ -512,6 +531,8 @@ do
 		},
 		n_lines = 500,
 	})
+
+	require("mini.pairs").setup()
 
 	-- Add/delete/replace surroundings (brackets, quotes, etc.)
 	--
@@ -817,6 +838,8 @@ do
 	--  See `:help lsp-config` for information about keys and how to configure
 	---@type table<string, vim.lsp.Config>
 	local servers = {
+		ts_ls = {},
+
 		-- Python: choose ONE type checker
 		basedpyright = {},
 		ruff = {},
