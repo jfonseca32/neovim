@@ -130,7 +130,7 @@ do
 	vim.o.breakindent = true
 
 	vim.api.nvim_create_autocmd("FileType", {
-		pattern = { "javascript", "javascriptreact", "typescript", "typescriptreact" },
+		pattern = { "css", "html", "javascript", "javascriptreact", "typescript", "typescriptreact" },
 		callback = function()
 			vim.opt_local.tabstop = 2
 			vim.opt_local.softtabstop = 2
@@ -424,6 +424,8 @@ do
 	vim.pack.add({ gh("NMAC427/guess-indent.nvim") })
 	require("guess-indent").setup({
 		filetype_exclude = {
+			"css",
+			"html",
 			"javascript",
 			"javascriptreact",
 			"netrw",
@@ -838,6 +840,8 @@ do
 	--  See `:help lsp-config` for information about keys and how to configure
 	---@type table<string, vim.lsp.Config>
 	local servers = {
+		cssls = {},
+		html = {},
 		ts_ls = {},
 
 		-- Python: choose ONE type checker
