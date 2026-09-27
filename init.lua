@@ -845,7 +845,22 @@ do
 		ts_ls = {},
 
 		-- Python: choose ONE type checker
-		basedpyright = {},
+		basedpyright = {
+			settings = {
+				python = {
+					pythonPath = vim.env.CONDA_PREFIX and (vim.env.CONDA_PREFIX .. "/bin/python")
+						or vim.fn.exepath("python3"),
+				},
+				basedpyright = {
+					analysis = {
+						typeCheckingMode = "basic",
+						diagnosticSeverityOverrides = {
+							reportMissingTypeStubs = "none",
+						},
+					},
+				},
+			},
+		},
 		ruff = {},
 
 		-- C and C++
